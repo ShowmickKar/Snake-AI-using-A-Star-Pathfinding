@@ -26,16 +26,22 @@ class Agent:
         return path
 
     @staticmethod
-    def getNeighbors(snake):
-        head = snake.container[0]
+    def getNeighbors(snake, current):
         neighbors = [
             (
-                head.x + snake.velocity * Agent.DIRECTIONS[i][0],
-                head.y + snake.velocity * Agent.DIRECTIONS[i][1],
+                current[0] + snake.velocity * Agent.DIRECTIONS[i][0],
+                current[0] + snake.velocity * Agent.DIRECTIONS[i][1],
             )
             for i in range(4)
         ]
         for neighbor in neighbors:
+            if (
+                neighbor[0] < 0
+                or neighbor[0] > 600
+                or neighbor[1] < 0
+                or neighbor[1] > 600
+            ):
+                neighbors.remove(neighbor)
             if Agent.collision(neighbor, snake):
                 neighbors.remove(neighbor)
         return neighbors
@@ -64,18 +70,25 @@ class Agent:
         f_score[start] = Agent.manhattenDistance(start, end)
         open_set = {start}
         while not q.empty():
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
             current = q.get()[1]
             open_set.remove(current)
             if Agent.reached(current, food):
+                print("Accomplished")
                 return Agent.reconstructPath(came_from, current)
-            neighbors = Agent.getNeighbors(snake)
+            neighbors = Agent.getNeighbors(
+                snake, current
+            )  # This method is overestimating the neighbors
+            print(neighbors)
             for neighbor in neighbors:
                 if neighbor not in g_score:
                     g_score[neighbor] = math.inf
                 if neighbor not in f_score:
                     f_score[neighbor] = math.inf
                 tentative_g_score = g_score[current] + snake.velocity
-                if tentative_g_score > g_score[neighbor]:
+                if tentative_g_score < g_score[neighbor]:
                     came_from[neighbor] = current
                     g_score[neighbor] = tentative_g_score
                     f_score[neighbor] = g_score[neighbor] + Agent.manhattenDistance(
@@ -84,7 +97,7 @@ class Agent:
                     if neighbor not in open_set:
                         q.put((f_score[neighbor], neighbor))
                         open_set.add(neighbor)
-        return False
+        return []
 
     @staticmethod
     def collision(new_head_pos, snake):
@@ -113,32 +126,38 @@ class Agent:
             )
             for i in range(4)
         ]
+
         # try:
         #     if not len(Agent.current_path):
         #         Agent.current_path = Agent.aStar(snake, food)
+        #         print(Agent.current_path)
         #     for i, neighbor in enumerate(neighbors):
         #         if neighbor == Agent.current_path[-1]:
-        #             snake.direction == Agent.DIRECTIONS[i]
+        #             snake.direction = Agent.DIRECTIONS[i]
         #             Agent.current_path.pop()
         #             return
         # except Exception as e:
-        #     print(e)
         #     return
 
-        direction = snake.direction
-        distance = math.inf
-        for i, path in enumerate(neighbors):
-            if Agent.manhattenDistance(path, (food.x, food.y)) < distance:
-                """ Check for turn around attempts """
+        if not len(Agent.current_path):
+            direction = snake.direction
+            distance = math.inf
+            for i, path in enumerate(neighbors):
+                if Agent.manhattenDistance(path, (food.x, food.y)) < distance:
+                    """ Check for turn around attempts """
 
-                """ Check for the snake colliding with itself """
+                    """ Check for the snake colliding with itself """
 
-                if Agent.collision(path, snake):
-                    continue
-                direction = Agent.DIRECTIONS[i]
-                distance = Agent.manhattenDistance(path, (food.x, food.y))
+                    if Agent.collision(path, snake):
+                        continue
+                    direction = Agent.DIRECTIONS[i]
+                    distance = Agent.manhattenDistance(path, (food.x, food.y))
 
-        snake.direction = direction
+            snake.direction = direction
 
 
 """ Note - Implement the A* algorithm properly """
+
+""" Debug the AI """
+
+"""  Just re write the A Start Algorithm from scratch. so much easier that debugging that shit """
