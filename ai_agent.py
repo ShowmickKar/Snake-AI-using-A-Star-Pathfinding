@@ -23,6 +23,7 @@ class Agent:
         while current in came_from:
             current = came_from[current]
             path.append(current)
+        print(f"path: {path}")
         return path
 
     @staticmethod
@@ -52,40 +53,41 @@ class Agent:
         end_object = pygame.Rect(
             food.x - food.size // 2, food.y - food.size // 2, food.size, food.size
         )
-        return current_object.colliderect(end_object)
+        if current_object.colliderect(end_object):
+            print(current_object, end_object)
+            return True
+        return False
 
     @staticmethod
     def aStar(snake, food):
 
         """ return the path from reconstruct_path method """
 
-        start = (snake.container[0].x, snake.container[0].y)
+        start = snake.container[0].x, snake.container[0].y
         end = food.x, food.y
-        q = PriorityQueue()
-        q.put((0, start))
+        count = 0
+        priority_queue = PriorityQueue()
+        priority_queue.put((0, count, start))
         came_from = {}
-        g_score = {}  # initial value should be infinity
+        g_score = {}
         g_score[start] = 0
-        f_score = {}  # initial value should be infinity
+        f_score = {}
         f_score[start] = Agent.manhattenDistance(start, end)
         open_set = {start}
-        while not q.empty():
+        while not priority_queue.empty():
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     pygame.quit()
-            current = q.get()[1]
+            current = priority_queue.get()[2]
             open_set.remove(current)
             if Agent.reached(current, food):
-                print("Accomplished")
+                # print(f"Found{current, food}")
                 return Agent.reconstructPath(came_from, current)
-            neighbors = Agent.getNeighbors(
-                snake, current
-            )  # This method is overestimating the neighbors
-            print(neighbors)
+            neighbors = Agent.getNeighbors(snake, start)
+            # print(current)
             for neighbor in neighbors:
                 if neighbor not in g_score:
                     g_score[neighbor] = math.inf
-                if neighbor not in f_score:
                     f_score[neighbor] = math.inf
                 tentative_g_score = g_score[current] + snake.velocity
                 if tentative_g_score < g_score[neighbor]:
@@ -95,7 +97,8 @@ class Agent:
                         neighbor, end
                     )
                     if neighbor not in open_set:
-                        q.put((f_score[neighbor], neighbor))
+                        count += 1
+                        priority_queue.put((f_score[neighbor], count, neighbor))
                         open_set.add(neighbor)
         return []
 
@@ -113,7 +116,7 @@ class Agent:
         return False
 
     @staticmethod
-    def makeDecision(snake, food):  # Use modified A* algorithm for navigating
+    def makeDecision(snake, food):
 
         """
         The purpose of the function is to calculate the optimal path using A* algorithm and set the snake's direction accordingly
@@ -127,18 +130,20 @@ class Agent:
             for i in range(4)
         ]
 
-        # try:
-        #     if not len(Agent.current_path):
-        #         Agent.current_path = Agent.aStar(snake, food)
-        #         print(Agent.current_path)
-        #     for i, neighbor in enumerate(neighbors):
-        #         if neighbor == Agent.current_path[-1]:
-        #             snake.direction = Agent.DIRECTIONS[i]
-        #             Agent.current_path.pop()
-        #             return
-        # except Exception as e:
-        #     return
-
+        try:
+            if not len(Agent.current_path):
+                Agent.current_path = Agent.aStar(snake, food)
+            try:
+                for i, neighbor in enumerate(neighbors):
+                    if neighbor == Agent.current_path[-1]:
+                        snake.direction = Agent.DIRECTIONS[i]
+                        Agent.current_path.pop()
+                        return
+            except Exception as e:
+                pass  # empty list
+        except Exception as e:
+            print(e)
+            return
         if not len(Agent.current_path):
             direction = snake.direction
             distance = math.inf
@@ -154,10 +159,3 @@ class Agent:
                     distance = Agent.manhattenDistance(path, (food.x, food.y))
 
             snake.direction = direction
-
-
-""" Note - Implement the A* algorithm properly """
-
-""" Debug the AI """
-
-"""  Just re write the A Start Algorithm from scratch. so much easier that debugging that shit """
